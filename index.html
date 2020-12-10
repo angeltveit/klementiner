@@ -8,15 +8,28 @@
   <meta name="author" content="Torbjørn Angeltveit <tan@scoutgg.com>">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
-
+    @font-face {
+      font-family: 'MerryChristmasFlake';
+      src: url(MerryChristmasFlake.ttf);
+    }
     body {
       font-family: 'Indie Flower', cursive;
       background-image: url(https://i.pinimg.com/originals/8b/39/f4/8b39f4531062731d4cf6aeb42a753795.jpg);
       background-size: cover;
       background-position: top;
-    height: 100vh;
+      height: 100vh;
+      display: flex;
+      justify-content: space-between;
+      flex-direction: column;
     }
-
+    h1 {
+      font-family: 'MerryChristmasFlake';
+      font-size: 10em;
+      color: #fff;
+      font-weight: 100;
+      text-align: center;
+      filter: drop-shadow(0px 0px 3px rgba(0,0,0,0.5));
+    }
     xmas-clementine {
       position: fixed;
       top: 20em;
@@ -28,10 +41,13 @@
     xmas-clementine[direction="right"] {
       left: calc(50% + 15px);
     }
+    
   </style>
 </head>
 
 <body>
+  <h1>God jul!</h1>
+  <h1>Klem-entiner</h1>
   <script>
     
     var params = new URLSearchParams(location.search)
@@ -70,41 +86,70 @@ class Clementine extends HTMLElement {
     this.defaultMood = this.getAttribute('mood') || 'happy'
     
     this.addEventListener('mousedown', (e)=> {
-      const rects = this.getBoundingClientRect()
-      this.mousePosition = {
-        y: Math.abs(e.y - rects.y),
-        x: Math.abs(e.x - rects.x),
-      }
-      
-      this.dragging = true
-
+      this.touch(e)
     })
+    this.addEventListener('touchstart', (e)=> {
+      const [touch] = e.touches
+      console.log('start', touch)
+      this.touch(touch)
+    })
+
     this.on('changeState', ({ mood }) => {
       this.mood = mood
     })
     
     this.debounce = false
     document.addEventListener('mousemove', (e) => {
-      if(this.dragging) {
-        if(this.debounce) return
-        setTimeout(() => {
-          this.debounce = false
-        }, 10)
-        this.debounce = true
-        this.style = `position: fixed; top: ${e.clientY - this.mousePosition.y}px; left: ${e.clientX - this.mousePosition.y}px;`
-        this.emit('changeState', { mood: 'worried' })
-      }
+      this.move(e)
+    })
+    document.addEventListener('touchmove', (e) => {
+      
+      const [touch] = e.touches
+      console.log(touch)
+      this.move(touch)
     })
     
-    document.addEventListener('mouseup', ()=> {
-      this.emit('changeState', { mood: 'default' })
-      this.style = ''
-      this.dragging = false
+    
+    document.addEventListener('mouseup', (e)=> {
+      this.release(e)
+    })
+    document.addEventListener('touchend', (e)=> {
+      this.release(e)
     })
 
     
   }
- 
+  
+  touch(e) {
+    const rects = this.getBoundingClientRect()
+    this.mousePosition = {
+      y: Math.abs(e.pageY - rects.y),
+      x: Math.abs(e.pageX - rects.x),
+    }
+    this.classList.add('animate__animated')
+    this.classList.add('animate__rubberBand')
+    this.dragging = true
+  }
+  move(e) {
+    console.log(this.dragging)
+    if(this.dragging) {
+      if(this.debounce) return
+      setTimeout(() => {
+        this.debounce = false
+      }, 10)
+      this.debounce = true
+      console.log(e.clientY, e.clientX, this.mousePosition)
+      this.style = `position: fixed; top: ${e.clientY - this.mousePosition.y}px; left: ${e.clientX - this.mousePosition.y}px;`
+      this.emit('changeState', { mood: 'worried' })
+    }
+  }
+  
+  release(e) {
+    this.emit('changeState', { mood: 'default' })
+    this.style = ''
+    this.dragging = false
+  }
+
   emit(eventName, data={}) {
     const event = new CustomEvent(eventName, { detail: data });
     window.dispatchEvent(event);
