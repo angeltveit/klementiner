@@ -71,11 +71,11 @@ class Clementine extends HTMLElement {
       }
       
       this.dragging = true
-      this.on('changeState', ({ mood }) => {
-        this.mood = mood
-      })
+
     })
-    
+    this.on('changeState', ({ mood }) => {
+      this.mood = mood
+    })
     
     this.debounce = false
     document.addEventListener('mousemove', (e) => {
