@@ -1,0 +1,293 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Klem-entiner!</title>
+  <meta name="author" content="Torbjørn Angeltveit <tan@scoutgg.com>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+    body {
+      font-family: 'Indie Flower', cursive;
+      background-image: url(https://i.pinimg.com/originals/8b/39/f4/8b39f4531062731d4cf6aeb42a753795.jpg);
+      background-size: cover;
+      background-position: top;
+    height: 100vh;
+    }
+
+    xmas-clementine {
+      position: fixed;
+      top: 20em;
+      left: calc(50% - 265px);
+      transition-property: top, left;
+      /*transition-duration: 150ms;*/
+    }
+
+    xmas-clementine[direction="right"] {
+      left: calc(50% + 15px);
+    }
+  </style>
+</head>
+
+<body>
+  <script>
+    
+    var params = new URLSearchParams(location.search)
+    let from = params.get('from') || 'Me'
+    let to = params.get('to') || 'You'
+    if(from.length > 11 || to.length > 11) {
+      alert('You should get a shorter name for xmas')
+    }
+    const one = document.createElement('xmas-clementine')
+    one.setAttribute('mood', 'chill')
+    one.setAttribute('direction', 'right')
+    one.setAttribute('name', to)
+
+    const two = document.createElement('xmas-clementine')
+    two.setAttribute('mood', 'happy')
+    two.setAttribute('name', from)
+
+    document.body.appendChild(one)
+    document.body.appendChild(two)
+    
+  </script>
+  <script>
+class Clementine extends HTMLElement {
+  constructor() {
+    super()
+    this.attachShadow({mode: 'open'})
+    this.name = this.getAttribute('name')
+    this.buildTemplate()
+    
+    this.defaultMood = this.getAttribute('mood') || 'happy'
+    
+    this.addEventListener('mousedown', (e)=> {
+      const rects = this.getBoundingClientRect()
+      this.mousePosition = {
+        y: Math.abs(e.y - rects.y),
+        x: Math.abs(e.x - rects.x),
+      }
+      
+      this.dragging = true
+      this.on('changeState', ({ mood }) => {
+        this.mood = mood
+      })
+    })
+    
+    
+    this.debounce = false
+    document.addEventListener('mousemove', (e) => {
+      if(this.dragging) {
+        if(this.debounce) return
+        setTimeout(() => {
+          this.debounce = false
+        }, 10)
+        this.debounce = true
+        this.style = `position: fixed; top: ${e.clientY - this.mousePosition.y}px; left: ${e.clientX - this.mousePosition.y}px;`
+        this.emit('changeState', { mood: 'worried' })
+      }
+    })
+    
+    document.addEventListener('mouseup', ()=> {
+      this.emit('changeState', { mood: 'default' })
+      this.style = ''
+      this.dragging = false
+    })
+
+    
+  }
+ 
+  emit(eventName, data={}) {
+    const event = new CustomEvent(eventName, { detail: data });
+    window.dispatchEvent(event);
+  }
+  on(eventName, callback) {
+    window.addEventListener(eventName, (e) => {
+      callback({ ...e, ...e.detail })
+    })
+  }
+  
+  set dragging(dragging) {
+    this._dragging = dragging
+    if(dragging) return this.mood = 'worried'
+    this.mood = this.defaultMood
+  }
+  get dragging() {
+    return this._dragging
+  }
+  set mood(mood) {
+    if(!['happy', 'worried', 'chill'].includes(mood)) {
+      mood = this.defaultMood
+    }
+    this._mood = mood
+    this.setAttribute('mood', this._mood)
+  }
+  get mood() {
+    return this._mood
+  }
+  template(str, ...params) {
+    let output = ''
+    output += str.map((text, index) => {
+      return params[index] ? text + encodeURIComponent(params[index]) : text
+    }).join('')
+    
+    this.shadowRoot.innerHTML = output
+  }
+  buildTemplate() {
+    this.template`
+      <style>
+        :host {
+          display: flex;
+          flex-direction: column;
+          height: 240px;
+          width: 265px;
+          background-image: url(/klementin.png);
+          background-size: cover;
+          position: relative;
+          user-select: none;
+        }
+        :host img {
+          pointer-events: none;
+        }
+        :host([direction="right"]) {
+          transform: translateX(-50px) rotate(360deg) scaleX(-1);
+        }
+        :host([direction="right"]) .name {
+          transform: rotate(325deg) scaleX(-1);;
+        }
+        :host([direction="right"]) .arm {
+          z-index: 1;
+        }
+        :host([mood="happy"]) .arm .normal {
+          display: block !important;
+        }
+        :host([mood="happy"]) .happy {
+          display: block;
+        }
+        :host([mood="worried"]) .worried {
+          display: block;
+        }
+        :host([mood="worried"]) .arm .frantic {
+          display: block !important;
+          aniamtion-name: frantic;
+          animation-duration: 10ms;
+        }
+        :host([mood="worried"]) .arm {
+          display: block !important;
+          animation-name: frantic;
+          animation-duration: 200ms;
+          transform-origin: center;
+          right: -50px;
+          top: 45%;
+        }
+        :host([mood="chill"]) .chill {
+          display: block;
+          margin-top: .75em;
+        }
+        :host([mood="chill"]) .blush {
+          display: block;
+          position: absolute;
+          top: 4em;
+          right: 4em;
+          height: 7em;
+          width: 7em;
+          animation-name: blush;
+          animation-duration: 6s;
+          animation-iteration-count: infinite;
+          z-index: 10;
+        } 
+        .face {
+          position: absolute;
+          top: 3em;
+          right: 1.5em;
+        }
+        .face img {
+          display: none;
+        }
+        .name {
+          font-size: 2em;
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform: rotate(-35deg);
+          z-index: 10;
+          background-color: #000;
+          color: #fff;
+          border-radius: 5px;
+          padding: 0 .5em;
+        }
+        .blush {
+          display: none;
+          background: radial-gradient(circle, rgba(255,11,11,0.76234243697479) 0%, rgba(148,187,233,0) 69%);
+
+        }
+        .arm {
+          position: absolute;
+          top: 55%;
+          right: -70px;
+          transform-origin: left;
+          animation-name: stroke;
+          animation-duration: 1500ms;
+          animation-iteration-count: infinite;
+        }
+        .arm img {
+          display: none;
+        }
+        @keyframes stroke {
+          0% {
+            transform: rotate(-20deg);
+          }
+          25% {
+            transform: rotate(-22deg);
+          }
+          50% {
+          transform: rotate(-20deg);
+          }
+          100% {
+          transform: rotate(-20deg);
+          }
+        }
+        @keyframes blush {
+          0% {
+            opacity: 0;
+          }
+          40% {
+            opacity: 1;
+          }
+          80% {
+            opacity: 0;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+        @keyframes frantic {
+          0% {
+            transform: rotateX(0deg) scaleX(-1);
+          }
+          100% {
+            transform: rotateX(180deg) scaleX(-1);
+          }
+        }
+      </style>
+      <div class="name">${this.name}</div>
+      <div class="face">
+        <img class="happy" src="/happy.png" alt="Happy face" />
+        <img class="chill" src="/chill.png" alt="Happy face" />
+        <img class="worried" src="/worried.png" alt="Happy face" />
+      </div>
+      <div class="arm">
+        <img class="normal" src="/normal-arm.png" alt="Arm" />
+        <img class="frantic" src="/frantic-arm.png" alt="Frantic arm" />
+      </div>
+      <div class="blush"></div>
+      `
+  }
+}
+
+customElements.define('xmas-clementine', Clementine)
+  </script>
+</body>
+</html>
