@@ -37,6 +37,12 @@
     var params = new URLSearchParams(location.search)
     let from = params.get('from') || 'Me'
     let to = params.get('to') || 'You'
+    let token = params.get('t')
+    if(token) {
+       const payload = JSON.parse(atob(token))
+       to = payload.to || 'You'
+       from = payload.from || 'Me'
+    }
     if(from.length > 11 || to.length > 11) {
       alert('You should get a shorter name for xmas')
     }
